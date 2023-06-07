@@ -1,4 +1,12 @@
-import { app, BrowserWindow, globalShortcut, nativeTheme } from "electron"
+import {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  ipcMain,
+  nativeTheme,
+} from "electron"
+import { exec } from "node:child_process"
+import type { SearchResult } from "../frontend/search"
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -12,8 +20,8 @@ const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
     height: 600,
     width: 800,
-    frame: false,
     transparent: true,
+    frame: false,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       nodeIntegration: true,
@@ -49,6 +57,24 @@ const createWindow = (): void => {
   function sendLight() {
     mainWindow.webContents.send("theme", "light")
   }
+
+  ipcMain.on("invokeSearchResult", (event, message: SearchResult) => {
+    console.log(message)
+    exec(
+      "/home/tim/.cargo/bin/desktopctl theme toggle",
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error executing command: ${error}`)
+          return
+        }
+        if (stderr) {
+          console.error(`stderr: ${stderr}`)
+          return
+        }
+        console.log(`stdout: ${stdout}`)
+      }
+    )
+  })
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
